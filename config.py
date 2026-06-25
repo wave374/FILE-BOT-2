@@ -14,7 +14,7 @@ SHORT_TUT = "https://t.me/How_to_Download_7x/26"
 
 # Bot Configuration
 SESSION = "yato"
-TOKEN = "8983020125:AAHRO6_Af-Jc0JLki9Tjg3bhlOyPVe_slB0"
+TOKEN = "8794104043:AAFgxQdS3gCj5Y5V6opMBTpRjRrqtnPo5lg"
 API_ID = "36935039"
 API_HASH = "590c1cf65507e4b55e78b16ed3cc7f1c"
 WORKERS = 5
@@ -24,7 +24,7 @@ DB_NAME = "Cluster0"
 
 FSUBS = [[-1003721792598, True, 10]] # Force Subscription Channels [channel_id, request_enabled, timer_in_minutes]
 # Database Channel (Primary)
-DB_CHANNEL = -1003707654793   # just put channel id dont add ""
+DB_CHANNEL = -1004327545676   # just put channel id dont add ""
 # Multiple Database Channels (can be set via bot settings)
 # DB_CHANNELS = {
 #     "-1002595092736": {"name": "Primary DB", "is_primary": True, "is_active": True},
