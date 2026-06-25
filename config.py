@@ -45,8 +45,8 @@ MESSAGES = {
     "ABOUT": "<b>›› ᴀɴɪᴍᴇ ᴄʜᴀɴɴᴇʟ:  <a href='https://t.me/Animeflio'>Aɴɪᴍᴇꜰʟɪᴏ</a> \n <blockquote expandable>›› ᴜᴘᴅᴀᴛᴇs ᴄʜᴀɴɴᴇʟ: <a href='https://t.me/Animeflio'>Cʟɪᴄᴋ ʜᴇʀᴇ</a> \n›› ᴏᴡɴᴇʀ:  <a href='https://t.me/WAVE_189'>WAVE</a> \n›› ʟᴀɴɢᴜᴀɢᴇ: <a href='https://docs.python.org/3/'>Pʏᴛʜᴏɴ 3</a> \n›› ʟɪʙʀᴀʀʏ: <a href='https://docs.pyrogram.org/'>Pʏʀᴏɢʀᴀᴍ ᴠ2</a> \n›› ᴅᴀᴛᴀʙᴀsᴇ: <a href='https://www.mongodb.com/docs/'>Mᴏɴɢᴏ ᴅʙ</a> \n›› ᴅᴇᴠᴇʟᴏᴘᴇʀ:  <a href='https://t.me/WAVE_189'>WAVE</a></b></blockquote>",
     "REPLY": "<b>ꜰᴏʀ ᴍᴏʀᴇ ᴊᴏɪɴ -  <a href='https://t.me/Animeflio'>ᴀɴɪᴍᴇꜰʟɪᴏ </a></b>",
     "SHORT_MSG": "<b>📊 ʜᴇʏ {first}, \n\n‼️ ɢᴇᴛ ᴀʟʟ ꜰɪʟᴇꜱ ɪɴ ᴀ ꜱɪɴɢʟᴇ ʟɪɴᴋ ‼️\n\n ⌯ ʏᴏᴜʀ ʟɪɴᴋ ɪꜱ ʀᴇᴀᴅʏ, ᴋɪɴᴅʟʏ ᴄʟɪᴄᴋ ᴏɴ ᴏᴘᴇɴ ʟɪɴᴋ ʙᴜᴛᴛᴏɴ..</b>",
-    "START_PHOTO": "https://i.postimg.cc/2jHZq3cC/IMG-20260624-231953-394.jpg",
-    "FSUB_PHOTO": "https://i.postimg.cc/wBHv4df2/a7e00502555f3ca3ad6542e90bb2d7d7.jpg",
+    "START_PHOTO": "https://i.postimg.cc/Bt9LqPpn/1000194617.jpg",
+    "FSUB_PHOTO": "https://i.postimg.cc/QCB1N3rc/IMG-20260620-182506-428.jpg",
     "SHORT_PIC": "https://telegra.ph/file/7a16ef7abae23bd238c82-b8fbdcb05422d71974.jpg",
     "SHORT": "https://telegra.ph/file/8aaf4df8c138c6685dcee-05d3b183d4978ec347.jpg"
 }
