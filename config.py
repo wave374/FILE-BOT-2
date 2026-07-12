@@ -22,9 +22,9 @@ WORKERS = 5
 DB_URI = "mongodb+srv://Wave_129:nlvZrOCSJKXV86VY@cluster0.s2hog3m.mongodb.net/?appName=Cluster0"
 DB_NAME = "Cluster0"
 
-FSUBS = [[-1003864397605, True, 10]] # Force Subscription Channels [channel_id, request_enabled, timer_in_minutes]
+FSUBS = [[-1003766543218, True, 10]] # Force Subscription Channels [channel_id, request_enabled, timer_in_minutes]
 # Database Channel (Primary)
-DB_CHANNEL = -1004327545676   # just put channel id dont add ""
+DB_CHANNEL = -1003769102887   # just put channel id dont add ""
 # Multiple Database Channels (can be set via bot settings)
 # DB_CHANNELS = {
 #     "-1002595092736": {"name": "Primary DB", "is_primary": True, "is_active": True},
