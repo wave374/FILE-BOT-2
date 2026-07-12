@@ -14,7 +14,7 @@ SHORT_TUT = "https://t.me/How_to_Download_7x/26"
 
 # Bot Configuration
 SESSION = "yato"
-TOKEN = "8794104043:AAFgxQdS3gCj5Y5V6opMBTpRjRrqtnPo5lg"
+TOKEN = "8963558640:AAE-Vlxo6kqkgzTFjspfc2Sk60b-IifNAEE"
 API_ID = "36935039"
 API_HASH = "590c1cf65507e4b55e78b16ed3cc7f1c"
 WORKERS = 5
@@ -45,7 +45,7 @@ MESSAGES = {
     "ABOUT": "<b>›› ᴀɴɪᴍᴇ ᴄʜᴀɴɴᴇʟ:  <a href='https://t.me/Animeflio'>Aɴɪᴍᴇꜰʟɪᴏ</a> \n <blockquote expandable>›› ᴜᴘᴅᴀᴛᴇs ᴄʜᴀɴɴᴇʟ: <a href='https://t.me/Animeflio'>Cʟɪᴄᴋ ʜᴇʀᴇ</a> \n›› ᴏᴡɴᴇʀ:  <a href='https://t.me/WAVE_189'>WAVE</a> \n›› ʟᴀɴɢᴜᴀɢᴇ: <a href='https://docs.python.org/3/'>Pʏᴛʜᴏɴ 3</a> \n›› ʟɪʙʀᴀʀʏ: <a href='https://docs.pyrogram.org/'>Pʏʀᴏɢʀᴀᴍ ᴠ2</a> \n›› ᴅᴀᴛᴀʙᴀsᴇ: <a href='https://www.mongodb.com/docs/'>Mᴏɴɢᴏ ᴅʙ</a> \n›› ᴅᴇᴠᴇʟᴏᴘᴇʀ:  <a href='https://t.me/WAVE_189'>WAVE</a></b></blockquote>",
     "REPLY": "<b>ꜰᴏʀ ᴍᴏʀᴇ ᴊᴏɪɴ -  <a href='https://t.me/Animeflio'>ᴀɴɪᴍᴇꜰʟɪᴏ </a></b>",
     "SHORT_MSG": "<b>📊 ʜᴇʏ {first}, \n\n‼️ ɢᴇᴛ ᴀʟʟ ꜰɪʟᴇꜱ ɪɴ ᴀ ꜱɪɴɢʟᴇ ʟɪɴᴋ ‼️\n\n ⌯ ʏᴏᴜʀ ʟɪɴᴋ ɪꜱ ʀᴇᴀᴅʏ, ᴋɪɴᴅʟʏ ᴄʟɪᴄᴋ ᴏɴ ᴏᴘᴇɴ ʟɪɴᴋ ʙᴜᴛᴛᴏɴ..</b>",
-    "START_PHOTO": "https://i.postimg.cc/Hn4cksh7/IMG-20260623-233402-544.jpg",
+    "START_PHOTO": "https://ibb.co/YB6Kysr1",
     "FSUB_PHOTO": "https://i.postimg.cc/QCB1N3rc/IMG-20260620-182506-428.jpg",
     "SHORT_PIC": "https://telegra.ph/file/7a16ef7abae23bd238c82-b8fbdcb05422d71974.jpg",
     "SHORT": "https://telegra.ph/file/8aaf4df8c138c6685dcee-05d3b183d4978ec347.jpg"
