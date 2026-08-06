@@ -396,10 +396,13 @@ def force_sub(func):
 
         # If any channel that belongs to the force-sub folder is still not joined,
         # show a single "Join Folder" button (joining the folder joins every
-        # channel inside it in one tap).
+        # channel inside it in one tap). A channel the bot can't currently check
+        # (status is None, e.g. bot lost access / CHANNEL_PRIVATE) is treated the
+        # same way the main gate treats it — ignored, not counted as "not joined" —
+        # so one broken channel can't permanently stick the folder prompt.
         if folder_channels:
             not_joined_in_folder = any(
-                statuses.get(cid) not in {ChatMemberStatus.MEMBER, ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER}
+                statuses.get(cid) is not None and statuses.get(cid) not in {ChatMemberStatus.MEMBER, ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER}
                 for cid in folder_channels
             )
             if not_joined_in_folder:
