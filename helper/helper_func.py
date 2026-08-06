@@ -205,88 +205,99 @@ async def is_bot_admin(client, channel_id):
 
 #===============================================================#
 
-async def check_subscription(client, user_id):
-    """Enhanced subscription check with better request channel handling."""
-    statuses = {}
+async def _check_single_channel(client, user_id, channel_id, channel_name, request):
+    """Check one channel's membership status. Runs concurrently for all channels."""
+    try:
+        # Get actual membership status first
+        user = await client.get_chat_member(channel_id, user_id)
+        actual_status = user.status
 
+        # If user is already a member, admin, or owner
+        if actual_status in {ChatMemberStatus.MEMBER, ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER}:
+            await client.mongodb.update_fsub_status(user_id, channel_id, "joined")
+            await client.mongodb.add_channel_user(channel_id, user_id)
+
+            # If there was a pending join request, mark it as approved
+            if request and await client.mongodb.has_submitted_join_request(user_id, channel_id):
+                await client.mongodb.update_join_request_status(user_id, channel_id, "approved")
+
+            return channel_id, actual_status
+
+        # User is not a member - check if they left after being approved
+        if request:
+            # For request channels, check if user has submitted a request
+            has_request = await client.mongodb.has_submitted_join_request(user_id, channel_id)
+            if has_request:
+                # User has submitted request but not yet a member
+                request_status = await client.mongodb.get_join_request_status(user_id, channel_id)
+
+                if request_status == "approved":
+                    # Request was approved but user still not in channel
+                    # This means user might have left after approval - force them to rejoin
+                    await client.mongodb.update_fsub_status(user_id, channel_id, "left")
+                    await client.mongodb.remove_join_request(user_id, channel_id)
+                    return channel_id, ChatMemberStatus.BANNED
+                else:
+                    # Request is still pending, allow user to proceed
+                    await client.mongodb.update_fsub_status(user_id, channel_id, "request_submitted")
+                    return channel_id, ChatMemberStatus.MEMBER  # Treat as subscribed for request channels
+            else:
+                # No request submitted yet for request channel
+                await client.mongodb.update_fsub_status(user_id, channel_id, "not_requested")
+                return channel_id, ChatMemberStatus.BANNED
+        else:
+            # Regular channel (not request), user must be a member
+            await client.mongodb.update_fsub_status(user_id, channel_id, "left")
+            await client.mongodb.remove_channel_user(channel_id, user_id)
+            return channel_id, ChatMemberStatus.BANNED
+
+    except UserNotParticipant:
+        # User is not in the channel
+        await client.mongodb.update_fsub_status(user_id, channel_id, "left")
+        await client.mongodb.remove_channel_user(channel_id, user_id)
+
+        if request:
+            # For request channels, check if user has submitted a request
+            has_request = await client.mongodb.has_submitted_join_request(user_id, channel_id)
+            if has_request:
+                # User has submitted request but not in channel - still allow access for request channels
+                await client.mongodb.update_fsub_status(user_id, channel_id, "request_submitted")
+                return channel_id, ChatMemberStatus.MEMBER  # Treat as subscribed for request channels
+            else:
+                # No request submitted yet
+                await client.mongodb.update_fsub_status(user_id, channel_id, "not_requested")
+                return channel_id, ChatMemberStatus.BANNED
+        else:
+            # Regular channel, user must join
+            return channel_id, ChatMemberStatus.BANNED
+
+    except Forbidden:
+        client.LOGGER(__name__, client.name).warning(f"Bot lacks permission for {channel_name}.")
+        return channel_id, None
+    except Exception as e:
+        client.LOGGER(__name__, client.name).warning(f"Error checking {channel_name}: {e}")
+        return channel_id, None
+
+#===============================================================#
+
+async def check_subscription(client, user_id):
+    """Enhanced subscription check with better request channel handling.
+    Checks every fsub channel CONCURRENTLY instead of one after another, so the
+    total time is roughly the slowest single API call instead of the sum of all of them.
+    """
     # Ensure user exists in database
     if not await client.mongodb.present_user(user_id):
         await client.mongodb.add_user(user_id)
 
-    for channel_id, (channel_name, channel_link, request, timer) in client.fsub_dict.items():
-        try:
-            # Get actual membership status first
-            user = await client.get_chat_member(channel_id, user_id)
-            actual_status = user.status
-            
-            # If user is already a member, admin, or owner
-            if actual_status in {ChatMemberStatus.MEMBER, ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER}:
-                await client.mongodb.update_fsub_status(user_id, channel_id, "joined")
-                await client.mongodb.add_channel_user(channel_id, user_id)
-                
-                # If there was a pending join request, mark it as approved
-                if request and await client.mongodb.has_submitted_join_request(user_id, channel_id):
-                    await client.mongodb.update_join_request_status(user_id, channel_id, "approved")
-                
-                statuses[channel_id] = actual_status
-                continue
-            
-            # User is not a member - check if they left after being approved  
-            if request:
-                # For request channels, check if user has submitted a request
-                has_request = await client.mongodb.has_submitted_join_request(user_id, channel_id)
-                if has_request:
-                    # User has submitted request but not yet a member
-                    request_status = await client.mongodb.get_join_request_status(user_id, channel_id)
-                    
-                    if request_status == "approved":
-                        # Request was approved but user still not in channel
-                        # This means user might have left after approval - force them to rejoin
-                        await client.mongodb.update_fsub_status(user_id, channel_id, "left")
-                        await client.mongodb.remove_join_request(user_id, channel_id)
-                        statuses[channel_id] = ChatMemberStatus.BANNED
-                    else:
-                        # Request is still pending, allow user to proceed
-                        await client.mongodb.update_fsub_status(user_id, channel_id, "request_submitted")
-                        statuses[channel_id] = ChatMemberStatus.MEMBER  # Treat as subscribed for request channels
-                else:
-                    # No request submitted yet for request channel
-                    await client.mongodb.update_fsub_status(user_id, channel_id, "not_requested")
-                    statuses[channel_id] = ChatMemberStatus.BANNED
-            else:
-                # Regular channel (not request), user must be a member
-                await client.mongodb.update_fsub_status(user_id, channel_id, "left")
-                await client.mongodb.remove_channel_user(channel_id, user_id)
-                statuses[channel_id] = ChatMemberStatus.BANNED
-                
-        except UserNotParticipant:
-            # User is not in the channel
-            await client.mongodb.update_fsub_status(user_id, channel_id, "left")
-            await client.mongodb.remove_channel_user(channel_id, user_id)
-            
-            if request:
-                # For request channels, check if user has submitted a request
-                has_request = await client.mongodb.has_submitted_join_request(user_id, channel_id)
-                if has_request:
-                    # User has submitted request but not in channel - still allow access for request channels
-                    await client.mongodb.update_fsub_status(user_id, channel_id, "request_submitted")
-                    statuses[channel_id] = ChatMemberStatus.MEMBER  # Treat as subscribed for request channels
-                else:
-                    # No request submitted yet
-                    await client.mongodb.update_fsub_status(user_id, channel_id, "not_requested")
-                    statuses[channel_id] = ChatMemberStatus.BANNED
-            else:
-                # Regular channel, user must join
-                statuses[channel_id] = ChatMemberStatus.BANNED
-                
-        except Forbidden:
-            client.LOGGER(__name__, client.name).warning(f"Bot lacks permission for {channel_name}.")
-            statuses[channel_id] = None
-        except Exception as e:
-            client.LOGGER(__name__, client.name).warning(f"Error checking {channel_name}: {e}")
-            statuses[channel_id] = None
+    if not client.fsub_dict:
+        return {}
 
-    return statuses
+    tasks = [
+        _check_single_channel(client, user_id, channel_id, channel_name, request)
+        for channel_id, (channel_name, channel_link, request, timer) in client.fsub_dict.items()
+    ]
+    results = await asyncio.gather(*tasks)
+    return dict(results)
 
 #===============================================================#
 
@@ -328,15 +339,9 @@ def force_sub(func):
         folder = getattr(client, 'fsub_folder', None) or {}
         folder_channels = set(folder.get('channels', [])) if folder.get('link') else set()
 
-        for channel_id, (channel_name, channel_link, request, timer) in client.fsub_dict.items():
-            status = statuses.get(channel_id, None)
-
-            # Channels that belong to the force-sub folder get ONE combined button
-            # (the folder invite link) instead of an individual button per channel.
-            if channel_id in folder_channels:
-                continue
-
-            # Generate invite link if needed
+        # Generate any timed invite links CONCURRENTLY (this used to run one channel
+        # at a time and was the main cause of the 20-25s delay on this screen).
+        async def _get_link(channel_id, channel_name, request, timer, channel_link):
             if timer > 0:
                 expire_time = datetime.now() + timedelta(minutes=timer)
                 try:
@@ -345,9 +350,27 @@ def force_sub(func):
                         expire_date=expire_time,
                         creates_join_request=request
                     )
-                    channel_link = invite.invite_link
+                    return channel_id, invite.invite_link
                 except Exception as e:
                     client.LOGGER(__name__, client.name).warning(f"Error creating invite link for {channel_name}: {e}")
+            return channel_id, channel_link
+
+        link_tasks = [
+            _get_link(channel_id, channel_name, request, timer, channel_link)
+            for channel_id, (channel_name, channel_link, request, timer) in client.fsub_dict.items()
+            if channel_id not in folder_channels
+        ]
+        fresh_links = dict(await asyncio.gather(*link_tasks)) if link_tasks else {}
+
+        for channel_id, (channel_name, channel_link, request, timer) in client.fsub_dict.items():
+            status = statuses.get(channel_id, None)
+
+            # Channels that belong to the force-sub folder get ONE combined button
+            # (the folder invite link) instead of an individual button per channel.
+            if channel_id in folder_channels:
+                continue
+
+            channel_link = fresh_links.get(channel_id, channel_link)
 
             # Add button based on user status
             if status not in {ChatMemberStatus.MEMBER, ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER}:
@@ -380,7 +403,7 @@ def force_sub(func):
                 for cid in folder_channels
             )
             if not_joined_in_folder:
-                buttons.append(InlineKeyboardButton("🗂 Join Folder", url=folder['link']))
+                buttons.append(InlineKeyboardButton("›› ᴊᴏɪɴ ꜰᴏʟᴅᴇʀ", url=folder['link']))
 
         # Add "Try Again" button if needed
         from_link = message.text.split(" ")
