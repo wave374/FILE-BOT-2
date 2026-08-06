@@ -152,6 +152,29 @@ class MongoDB:
         current_data.pop(str(channel_id), None)
         await self.set_fsub_channels(current_data)
 
+    # ✅ FSUB FOLDER (Telegram chat-folder invite link) FUNCTIONS
+
+    async def set_fsub_folder(self, folder_data: dict):
+        """Store the fsub folder (link + channel ids) to database for persistence across bot restarts"""
+        await self.user_data.update_one(
+            {"_id": "fsub_folder"},
+            {"$set": {"folder": folder_data}},
+            upsert=True
+        )
+
+    async def get_fsub_folder(self) -> dict:
+        """Get the fsub folder data from database"""
+        data = await self.user_data.find_one({"_id": "fsub_folder"})
+        return data.get("folder", {}) if data else {}
+
+    async def remove_fsub_folder(self):
+        """Remove the fsub folder configuration from database"""
+        await self.user_data.update_one(
+            {"_id": "fsub_folder"},
+            {"$set": {"folder": {}}},
+            upsert=True
+        )
+
     # ✅ SHORTNER SETTINGS FUNCTIONS
 
     async def set_shortner_settings(self, shortner_data: dict):
