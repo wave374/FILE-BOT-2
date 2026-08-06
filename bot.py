@@ -31,7 +31,6 @@ class Bot(Client):
         self.fsub = fsub
         self.owner = OWNER_ID
         self.fsub_dict = {}
-        self.fsub_folder = {}  # {"link": "https://t.me/addlist/...", "channels": [-100..., -100...]}
         self.admins = admins + [OWNER_ID] if OWNER_ID not in admins else admins
         self.messages = messages
         self.auto_del = auto_del
@@ -97,15 +96,7 @@ class Bot(Client):
             self.LOGGER(__name__, self.name).warning(f"Error loading dynamic fsub channels: {e}")
             
         await self.mongodb.set_channels(self.req_channels)
-
-        # Load fsub folder (Telegram chat-folder invite link) config from database
-        try:
-            folder_data = await self.mongodb.get_fsub_folder()
-            if folder_data and folder_data.get("link") and folder_data.get("channels"):
-                self.fsub_folder = folder_data
-        except Exception as e:
-            self.LOGGER(__name__, self.name).warning(f"Error loading fsub folder: {e}")
-
+        
         # Load DB channels from database
         try:
             db_channels_data = await self.mongodb.get_db_channels()
