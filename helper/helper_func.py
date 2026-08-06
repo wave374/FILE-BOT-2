@@ -325,16 +325,8 @@ def force_sub(func):
         buttons = []
         channels_message = f"{client.messages.get('FSUB', '')}\n\n"
 
-        folder = getattr(client, 'fsub_folder', None) or {}
-        folder_channels = set(folder.get('channels', [])) if folder.get('link') else set()
-
         for channel_id, (channel_name, channel_link, request, timer) in client.fsub_dict.items():
             status = statuses.get(channel_id, None)
-
-            # Channels that belong to the force-sub folder get ONE combined button
-            # (the folder invite link) instead of an individual button per channel.
-            if channel_id in folder_channels:
-                continue
 
             # Generate invite link if needed
             if timer > 0:
@@ -370,17 +362,6 @@ def force_sub(func):
                         button_text = f"{channel_name}"
                 
                 buttons.append(InlineKeyboardButton(button_text, url=channel_link))
-
-        # If any channel that belongs to the force-sub folder is still not joined,
-        # show a single "Join Folder" button (joining the folder joins every
-        # channel inside it in one tap).
-        if folder_channels:
-            not_joined_in_folder = any(
-                statuses.get(cid) not in {ChatMemberStatus.MEMBER, ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER}
-                for cid in folder_channels
-            )
-            if not_joined_in_folder:
-                buttons.append(InlineKeyboardButton("🗂 Join Folder", url=folder['link']))
 
         # Add "Try Again" button if needed
         from_link = message.text.split(" ")
