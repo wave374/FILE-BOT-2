@@ -1,6 +1,7 @@
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from pyrogram.errors.pyromod import ListenerTimeout
+from pyrogram.errors import MessageNotModified
 from config import OWNER_ID
 import humanize
 
@@ -43,7 +44,10 @@ async def settings(client, query):
         [InlineKeyboardButton('ᴀᴅᴍɪɴꜱ', 'admins'), InlineKeyboardButton('ᴀᴜᴛᴏ ᴅᴇʟᴇᴛᴇ', 'auto_del')],
         [InlineKeyboardButton('ʜᴏᴍᴇ', 'home'), InlineKeyboardButton('›› ɴᴇxᴛ', 'settings_page_2')]
     ])
-    await query.message.edit_text(msg, reply_markup=reply_markup)
+    try:
+        await query.message.edit_text(msg, reply_markup=reply_markup)
+    except MessageNotModified:
+        await query.answer()
     return
 
 #===============================================================#
@@ -105,18 +109,31 @@ async def fsub(client, query):
         channels_display = "\n".join(channel_list)
     else:
         channels_display = "_ɴᴏ ꜰᴏʀᴄᴇ sᴜʙsᴄʀɪᴘᴛɪᴏɴ ᴄʜᴀɴɴᴇʟs ᴄᴏɴғɪɢᴜʀᴇᴅ_"
-    
+
+    folder = getattr(client, 'fsub_folder', None) or {}
+    if folder.get('link'):
+        folder_display = f"• `{folder['link']}`\n  ᴄʜᴀɴɴᴇʟs: `{', '.join(str(c) for c in folder.get('channels', []))}`"
+    else:
+        folder_display = "_ɴᴏ ꜰᴏʀᴄᴇ sᴜʙsᴄʀɪᴘᴛɪᴏɴ ꜰᴏʟᴅᴇʀ ᴄᴏɴғɪɢᴜʀᴇᴅ_"
+
     msg = f"""<blockquote>✦ ꜰᴏʀᴄᴇ sᴜʙsᴄʀɪᴘᴛɪᴏɴ sᴇᴛᴛɪɴɢs</blockquote>
 ›› **ᴄᴏɴғɪɢᴜʀᴇᴅ ᴄʜᴀɴɴᴇʟs:**
 {channels_display}
 
-__ᴜsᴇ ᴛʜᴇ ᴀᴘᴘʀᴏᴘʀɪᴀᴛᴇ ʙᴜᴛᴛᴏɴ ʙᴇʟᴏᴡ ᴛᴏ ᴀᴅᴅ ᴏʀ ʀᴇᴍᴏᴠᴇ ᴀ ꜰᴏʀᴄᴇ sᴜʙsᴄʀɪᴘᴛɪᴏɴ ᴄʜᴀɴɴᴇʟ ʙᴀsᴇᴅ ᴏɴ ʏᴏᴜʀ ɴᴇᴇᴅs!__
+›› **ᴄᴏɴғɪɢᴜʀᴇᴅ ꜰᴏʟᴅᴇʀ:**
+{folder_display}
+
+__ᴜsᴇ ᴛʜᴇ ᴀᴘᴘʀᴏᴘʀɪᴀᴛᴇ ʙᴜᴛᴛᴏɴ ʙᴇʟᴏᴡ ᴛᴏ ᴀᴅᴅ ᴏʀ ʀᴇᴍᴏᴠᴇ ᴀ ꜰᴏʀᴄᴇ sᴜʙsᴄʀɪᴘᴛɪᴏɴ ᴄʜᴀɴɴᴇʟ/ꜰᴏʟᴅᴇʀ ʙᴀsᴇᴅ ᴏɴ ʏᴏᴜʀ ɴᴇᴇᴅs!__
 """
     reply_markup = InlineKeyboardMarkup([
         [InlineKeyboardButton('›› ᴀᴅᴅ ᴄʜᴀɴɴᴇʟ', 'add_fsub'), InlineKeyboardButton('›› ʀᴇᴍᴏᴠᴇ ᴄʜᴀɴɴᴇʟ', 'rm_fsub')],
+        [InlineKeyboardButton('›› ᴀᴅᴅ ꜰᴏʟᴅᴇʀ', 'add_folder'), InlineKeyboardButton('›› ʀᴇᴍᴏᴠᴇ ꜰᴏʟᴅᴇʀ', 'rm_folder')],
         [InlineKeyboardButton('‹ ʙᴀᴄᴋ', 'settings')]]
     )
-    await query.message.edit_text(msg, reply_markup=reply_markup)
+    try:
+        await query.message.edit_text(msg, reply_markup=reply_markup)
+    except MessageNotModified:
+        await query.answer()
     return
 
 #===============================================================#
