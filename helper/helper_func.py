@@ -213,7 +213,7 @@ async def check_subscription(client, user_id):
     if not await client.mongodb.present_user(user_id):
         await client.mongodb.add_user(user_id)
 
-    for channel_id, (channel_name, channel_link, request, timer) in client.fsub_dict.items():
+    for channel_id, (channel_name, channel_link, request, timer) in list(client.fsub_dict.items()):
         try:
             # Get actual membership status first
             user = await client.get_chat_member(channel_id, user_id)
@@ -325,7 +325,7 @@ def force_sub(func):
         buttons = []
         channels_message = f"{client.messages.get('FSUB', '')}\n\n"
 
-        for channel_id, (channel_name, channel_link, request, timer) in client.fsub_dict.items():
+        for channel_id, (channel_name, channel_link, request, timer) in list(client.fsub_dict.items()):
             status = statuses.get(channel_id, None)
 
             # Generate invite link if needed
