@@ -205,88 +205,101 @@ async def is_bot_admin(client, channel_id):
 
 #===============================================================#
 
-async def check_subscription(client, user_id):
-    """Enhanced subscription check with better request channel handling."""
-    statuses = {}
+async def _check_single_channel(client, user_id, channel_id, channel_name, channel_link, request, timer):
+    """Check subscription status for a single fsub channel. Runs concurrently with others."""
+    try:
+        # Get actual membership status first
+        user = await client.get_chat_member(channel_id, user_id)
+        actual_status = user.status
 
+        # If user is already a member, admin, or owner
+        if actual_status in {ChatMemberStatus.MEMBER, ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER}:
+            await client.mongodb.update_fsub_status(user_id, channel_id, "joined")
+            await client.mongodb.add_channel_user(channel_id, user_id)
+
+            # If there was a pending join request, mark it as approved
+            if request and await client.mongodb.has_submitted_join_request(user_id, channel_id):
+                await client.mongodb.update_join_request_status(user_id, channel_id, "approved")
+
+            return channel_id, actual_status
+
+        # User is not a member - check if they left after being approved
+        if request:
+            # For request channels, check if user has submitted a request
+            has_request = await client.mongodb.has_submitted_join_request(user_id, channel_id)
+            if has_request:
+                # User has submitted request but not yet a member
+                request_status = await client.mongodb.get_join_request_status(user_id, channel_id)
+
+                if request_status == "approved":
+                    # Request was approved but user still not in channel
+                    # This means user might have left after approval - force them to rejoin
+                    await client.mongodb.update_fsub_status(user_id, channel_id, "left")
+                    await client.mongodb.remove_join_request(user_id, channel_id)
+                    return channel_id, ChatMemberStatus.BANNED
+                else:
+                    # Request is still pending, allow user to proceed
+                    await client.mongodb.update_fsub_status(user_id, channel_id, "request_submitted")
+                    return channel_id, ChatMemberStatus.MEMBER  # Treat as subscribed for request channels
+            else:
+                # No request submitted yet for request channel
+                await client.mongodb.update_fsub_status(user_id, channel_id, "not_requested")
+                return channel_id, ChatMemberStatus.BANNED
+        else:
+            # Regular channel (not request), user must be a member
+            await client.mongodb.update_fsub_status(user_id, channel_id, "left")
+            await client.mongodb.remove_channel_user(channel_id, user_id)
+            return channel_id, ChatMemberStatus.BANNED
+
+    except UserNotParticipant:
+        # User is not in the channel
+        await client.mongodb.update_fsub_status(user_id, channel_id, "left")
+        await client.mongodb.remove_channel_user(channel_id, user_id)
+
+        if request:
+            # For request channels, check if user has submitted a request
+            has_request = await client.mongodb.has_submitted_join_request(user_id, channel_id)
+            if has_request:
+                # User has submitted request but not in channel - still allow access for request channels
+                await client.mongodb.update_fsub_status(user_id, channel_id, "request_submitted")
+                return channel_id, ChatMemberStatus.MEMBER  # Treat as subscribed for request channels
+            else:
+                # No request submitted yet
+                await client.mongodb.update_fsub_status(user_id, channel_id, "not_requested")
+                return channel_id, ChatMemberStatus.BANNED
+        else:
+            # Regular channel, user must join
+            return channel_id, ChatMemberStatus.BANNED
+
+    except Forbidden:
+        client.LOGGER(__name__, client.name).warning(f"Bot lacks permission for {channel_name}.")
+        return channel_id, None
+    except Exception as e:
+        client.LOGGER(__name__, client.name).warning(f"Error checking {channel_name}: {e}")
+        return channel_id, None
+
+
+async def check_subscription(client, user_id):
+    """Enhanced subscription check with better request channel handling.
+
+    Checks all fsub channels concurrently instead of one-by-one, since each
+    check involves a Telegram API round trip plus several DB calls - doing
+    them sequentially is what was causing the multi-second /start delay.
+    """
     # Ensure user exists in database
     if not await client.mongodb.present_user(user_id):
         await client.mongodb.add_user(user_id)
 
-    for channel_id, (channel_name, channel_link, request, timer) in list(client.fsub_dict.items()):
-        try:
-            # Get actual membership status first
-            user = await client.get_chat_member(channel_id, user_id)
-            actual_status = user.status
-            
-            # If user is already a member, admin, or owner
-            if actual_status in {ChatMemberStatus.MEMBER, ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER}:
-                await client.mongodb.update_fsub_status(user_id, channel_id, "joined")
-                await client.mongodb.add_channel_user(channel_id, user_id)
-                
-                # If there was a pending join request, mark it as approved
-                if request and await client.mongodb.has_submitted_join_request(user_id, channel_id):
-                    await client.mongodb.update_join_request_status(user_id, channel_id, "approved")
-                
-                statuses[channel_id] = actual_status
-                continue
-            
-            # User is not a member - check if they left after being approved  
-            if request:
-                # For request channels, check if user has submitted a request
-                has_request = await client.mongodb.has_submitted_join_request(user_id, channel_id)
-                if has_request:
-                    # User has submitted request but not yet a member
-                    request_status = await client.mongodb.get_join_request_status(user_id, channel_id)
-                    
-                    if request_status == "approved":
-                        # Request was approved but user still not in channel
-                        # This means user might have left after approval - force them to rejoin
-                        await client.mongodb.update_fsub_status(user_id, channel_id, "left")
-                        await client.mongodb.remove_join_request(user_id, channel_id)
-                        statuses[channel_id] = ChatMemberStatus.BANNED
-                    else:
-                        # Request is still pending, allow user to proceed
-                        await client.mongodb.update_fsub_status(user_id, channel_id, "request_submitted")
-                        statuses[channel_id] = ChatMemberStatus.MEMBER  # Treat as subscribed for request channels
-                else:
-                    # No request submitted yet for request channel
-                    await client.mongodb.update_fsub_status(user_id, channel_id, "not_requested")
-                    statuses[channel_id] = ChatMemberStatus.BANNED
-            else:
-                # Regular channel (not request), user must be a member
-                await client.mongodb.update_fsub_status(user_id, channel_id, "left")
-                await client.mongodb.remove_channel_user(channel_id, user_id)
-                statuses[channel_id] = ChatMemberStatus.BANNED
-                
-        except UserNotParticipant:
-            # User is not in the channel
-            await client.mongodb.update_fsub_status(user_id, channel_id, "left")
-            await client.mongodb.remove_channel_user(channel_id, user_id)
-            
-            if request:
-                # For request channels, check if user has submitted a request
-                has_request = await client.mongodb.has_submitted_join_request(user_id, channel_id)
-                if has_request:
-                    # User has submitted request but not in channel - still allow access for request channels
-                    await client.mongodb.update_fsub_status(user_id, channel_id, "request_submitted")
-                    statuses[channel_id] = ChatMemberStatus.MEMBER  # Treat as subscribed for request channels
-                else:
-                    # No request submitted yet
-                    await client.mongodb.update_fsub_status(user_id, channel_id, "not_requested")
-                    statuses[channel_id] = ChatMemberStatus.BANNED
-            else:
-                # Regular channel, user must join
-                statuses[channel_id] = ChatMemberStatus.BANNED
-                
-        except Forbidden:
-            client.LOGGER(__name__, client.name).warning(f"Bot lacks permission for {channel_name}.")
-            statuses[channel_id] = None
-        except Exception as e:
-            client.LOGGER(__name__, client.name).warning(f"Error checking {channel_name}: {e}")
-            statuses[channel_id] = None
+    channels = list(client.fsub_dict.items())
+    if not channels:
+        return {}
 
-    return statuses
+    results = await asyncio.gather(*[
+        _check_single_channel(client, user_id, channel_id, channel_name, channel_link, request, timer)
+        for channel_id, (channel_name, channel_link, request, timer) in channels
+    ])
+
+    return dict(results)
 
 #===============================================================#
 
