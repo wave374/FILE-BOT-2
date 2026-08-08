@@ -96,7 +96,7 @@ async def fsub(client, query):
     # Create a formatted list of channels with names and IDs
     if client.fsub_dict:
         channel_list = []
-        for channel_id, channel_data in client.fsub_dict.items():
+        for channel_id, channel_data in list(client.fsub_dict.items()):
             channel_name = channel_data[0] if channel_data and len(channel_data) > 0 else "Unknown"
             request_status = "✓ ʀᴇѦᴜᴇsᴛ" if channel_data[2] else "✗ ʀᴇѦᴜᴇsᴛ"
             timer_status = f"ᴛɪᴍᴇʀ: {channel_data[3]}ᴍ" if channel_data[3] > 0 else "ᴛɪᴍᴇʀ: ∞"

@@ -29,7 +29,6 @@ async def start_command(client: Client, message: Message):
         return await message.reply("**You have been banned from using this bot!**")
     # ✅ ADD TYPING EFFECT HERE
     await client.send_chat_action(message.chat.id, ChatAction.PLAYING)
-    await asyncio.sleep(1)  # adjust delay as you like
 
     text = message.text
     if len(text) > 7:
